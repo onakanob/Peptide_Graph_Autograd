@@ -1,0 +1,6 @@
+rdkit
+numpy
+scipy
+matplotlib
+autograd
+spyder
