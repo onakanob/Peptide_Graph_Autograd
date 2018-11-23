@@ -4,7 +4,7 @@ from rdkit.Chem.Draw import SimilarityMaps, MolToMPL
 A_smiles = 'C(CC(C(=O)O)N)CN=C(N)N'
 
 molSmiles = chem.MolFromSmiles(A_smiles)
-molAmino = chem.MolFromSequence('IMVTY')
+molAmino = chem.MolFromSequence('VLQRNCAAYL')
 molAmino2 = chem.MolFromFASTA('R')
 
 print molSmiles is None

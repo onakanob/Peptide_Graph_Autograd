@@ -17,18 +17,24 @@ from autograd import grad
 
 task_params = {'input_name'  : 'sequence',
                'target_name' : 'Log_IC50',
-               'conditions'  : {'mhc' : 'HLA-A*02:02',
-                                'peptide_length' : 9},
+               'conditions'  : {'mhc' : 'HLA-A*02:02'
+#                                ,'peptide_length' : 9},
+                               },
                'data_file'   : '../data/bdata.20130222.mhci.csv'}
 #task_params = {'input_name'  : 'smiles',
 #               'target_name' : 'measured log solubility in mols per litre',
 #               'conditions'  : {},
 #               'data_file'   : 'delaney.csv'}
 
-# MHC:
-N_train = 2000 #800
-N_val   = 650 #80
-N_test  = 650 #80
+# MHC HLA-A*02:02 all lengths:
+N_train = 2400
+N_val   = 830
+N_test  = 830
+               
+# MHC HLA-A*02:02 only 9:
+#N_train = 1450 #2400
+#N_val   = 490 #830
+#N_test  = 490 #830
 
 # Delayney:
 #N_train = 800
@@ -125,8 +131,8 @@ def main():
             train_nn(pred_fun, loss_fun, num_weights, train_inputs, train_targets,
                      train_params, validation_smiles=val_inputs, validation_raw_targets=val_targets)
 #        x = range(10, 10*(1+len(conv_training_curve)), 10)
-        plt.plot(range(0, 10*(len(conv_training_curve[0])), 10),
-        conv_training_curve[0], label='training loss')
+#        plt.plot(range(0, 10*(len(conv_training_curve[0])), 10),
+#        conv_training_curve[0], label='training loss')
         plt.plot(range(0, 10*(len(conv_training_curve[1])), 10),
         conv_training_curve[1], label='training rmse')
         plt.plot(range(0, 10*(len(conv_training_curve[2])), 10),
