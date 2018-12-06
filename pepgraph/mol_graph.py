@@ -62,36 +62,36 @@ class Node(object):
     def get_neighbors(self, ntype):
         return [n for n in self._neighbors if n.ntype == ntype]
 
-def graph_from_smiles_tuple(smiles_tuple):
-    graph_list = [graph_from_smiles(s) for s in smiles_tuple]
-    big_graph = MolGraph()
-    for subgraph in graph_list:
-        big_graph.add_subgraph(subgraph)
-
-    # This sorting allows an efficient (but brittle!) indexing later on.
-    big_graph.sort_nodes_by_degree('atom')
-    return big_graph
-
-def graph_from_smiles(smiles):
-    graph = MolGraph()
-    mol = MolFromSmiles(smiles)
-    if not mol:
-        raise ValueError("Could not parse SMILES string:", smiles)
-    atoms_by_rd_idx = {}
-    for atom in mol.GetAtoms():
-        new_atom_node = graph.new_node('atom', features=atom_features(atom), rdkit_ix=atom.GetIdx())
-        atoms_by_rd_idx[atom.GetIdx()] = new_atom_node
-
-    for bond in mol.GetBonds():
-        atom1_node = atoms_by_rd_idx[bond.GetBeginAtom().GetIdx()]
-        atom2_node = atoms_by_rd_idx[bond.GetEndAtom().GetIdx()]
-        new_bond_node = graph.new_node('bond', features=bond_features(bond))
-        new_bond_node.add_neighbors((atom1_node, atom2_node))
-        atom1_node.add_neighbors((atom2_node,))
-
-    mol_node = graph.new_node('molecule')
-    mol_node.add_neighbors(graph.nodes['atom'])
-    return graph
+#def graph_from_smiles_tuple(smiles_tuple):
+#    graph_list = [graph_from_smiles(s) for s in smiles_tuple]
+#    big_graph = MolGraph()
+#    for subgraph in graph_list:
+#        big_graph.add_subgraph(subgraph)
+#
+#    # This sorting allows an efficient (but brittle!) indexing later on.
+#    big_graph.sort_nodes_by_degree('atom')
+#    return big_graph
+#
+#def graph_from_smiles(smiles):
+#    graph = MolGraph()
+#    mol = MolFromSmiles(smiles)
+#    if not mol:
+#        raise ValueError("Could not parse SMILES string:", smiles)
+#    atoms_by_rd_idx = {}
+#    for atom in mol.GetAtoms():
+#        new_atom_node = graph.new_node('atom', features=atom_features(atom), rdkit_ix=atom.GetIdx())
+#        atoms_by_rd_idx[atom.GetIdx()] = new_atom_node
+#
+#    for bond in mol.GetBonds():
+#        atom1_node = atoms_by_rd_idx[bond.GetBeginAtom().GetIdx()]
+#        atom2_node = atoms_by_rd_idx[bond.GetEndAtom().GetIdx()]
+#        new_bond_node = graph.new_node('bond', features=bond_features(bond))
+#        new_bond_node.add_neighbors((atom1_node, atom2_node))
+#        atom1_node.add_neighbors((atom2_node,))
+#
+#    mol_node = graph.new_node('molecule')
+#    mol_node.add_neighbors(graph.nodes['atom'])
+#    return graph
 
 def graph_from_aa_tuple(aa_tuple):
     graph_list = [graph_from_amino_acids(s) for s in aa_tuple]

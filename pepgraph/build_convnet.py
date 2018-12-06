@@ -3,7 +3,7 @@ from autograd.scipy.misc import logsumexp
 
 from features import num_atom_features, num_bond_features
 from util import memoize, WeightsParser
-from mol_graph import graph_from_aa_tuple, graph_from_smiles_tuple, degrees
+from mol_graph import graph_from_aa_tuple, degrees
 from build_vanilla_net import build_fingerprint_deep_net, relu, batch_normalize
 
 
