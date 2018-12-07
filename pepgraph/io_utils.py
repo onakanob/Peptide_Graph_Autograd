@@ -12,10 +12,13 @@ def load_csv_test_split(filename, test_size, rand_seed, input_name, target_name,
         reader = csv.DictReader(file)
         reader.next()
         for row in reader:
+            add_row = True
             for key in conditions.keys():
-                if row[key] == conditions[key]:
-                    data[0].append(row[input_name])
-                    data[1].append(float(row[target_name]))
+                if row[key] != conditions[key]:
+                    add_row = False
+            if add_row:
+                data[0].append(row[input_name])
+                data[1].append(float(row[target_name]))
     data = np.array(data)
     rand.seed(rand_seed)
     sequence = rand.choice(data[0].size, data[0].size, replace=False)
@@ -24,6 +27,7 @@ def load_csv_test_split(filename, test_size, rand_seed, input_name, target_name,
     trainset = (data[0][sequence[int(data[0].size * test_size):]],
                data[1][sequence[int(data[0].size * test_size):]])
     rand.seed()
+    print 'Loaded', trainset[0].size, 'training points;', testset[0].size, 'test points.'
     return trainset, testset
 
 

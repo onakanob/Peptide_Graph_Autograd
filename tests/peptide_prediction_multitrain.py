@@ -3,6 +3,7 @@ Based on regression example from https://github.com/HIPS/neural-fingerprint
 Oliver Nakano-Baker"""
 
 from time import time
+import pickle
 import autograd.numpy as np
 import autograd.numpy.random as npr
 from matplotlib import pyplot as plt
@@ -76,36 +77,41 @@ def val_split(data, val_fraction, seed=np.array([])):
         npr.seed()
     return train_inputs, train_targets, val_inputs, val_targets
 
-def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
+def train_nn(pred_fun, loss_fun, num_weights, train_aa, train_raw_targets,
              train_params, seed=0,
              validation_aa=None, validation_raw_targets=None):
     """loss_fun has inputs (weights, smiles, targets)"""
     print "Total number of weights in the network:", num_weights
     init_weights = npr.RandomState(seed).randn(num_weights) * train_params['init_scale']
 
-    num_print_examples = 100
+    num_print_examples = 32
     train_targets, undo_norm = normalize_array(train_raw_targets)
     training_curve = [[], [], []] # Test error, Val error
     def callback(weights, iter):
-        if iter % 1 == 0:
+        if iter % 10 == 0:
             print "max of weights", np.max(np.abs(weights))
-            train_preds = undo_norm(pred_fun(weights, train_smiles[:num_print_examples]))
-            cur_loss = loss_fun(weights, train_smiles[:num_print_examples], train_targets[:num_print_examples])
+            selection = npr.choice(train_aa.size, size=num_print_examples)
+            train_preds = undo_norm(pred_fun(weights, train_aa[selection]))
+            cur_loss = loss_fun(weights, train_aa[selection], train_targets[selection])
+#            train_preds = undo_norm(pred_fun(weights, train_aa[:num_print_examples]))
+#            cur_loss = loss_fun(weights, train_aa[:num_print_examples], train_targets[:num_print_examples])
             training_curve[0].append(cur_loss)
-            train_RMSE = rmse(train_preds, train_raw_targets[:num_print_examples])
+            train_RMSE = rmse(train_preds, train_raw_targets[selection])
+#            train_RMSE = rmse(train_preds, train_raw_targets[:num_print_examples])
             training_curve[1].append(train_RMSE)
             print "Iteration", iter, "loss", cur_loss,\
                   "train RMSE", train_RMSE,
             if validation_aa is not None:
-                validation_preds = undo_norm(pred_fun(weights, validation_aa))
-                val_RMSE = rmse(validation_preds, validation_raw_targets)
+                selection = npr.choice(validation_aa.size, size=num_print_examples)
+                validation_preds = undo_norm(pred_fun(weights, validation_aa[selection]))
+                val_RMSE = rmse(validation_preds, validation_raw_targets[selection])
                 training_curve[2].append(val_RMSE)
                 print "Validation RMSE", iter, ":", val_RMSE,
 
     # Build gradient using autograd.
     grad_fun = grad(loss_fun)
     grad_fun_with_data = build_batched_grad(grad_fun, train_params['batch_size'],
-                                            train_smiles, train_targets)
+                                            train_aa, train_targets)
 
     # Optimize weights.
     trained_weights = adam(grad_fun_with_data, init_weights, callback=callback,
@@ -117,7 +123,8 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
     return predict_func, trained_weights, training_curve
 
 def run_experiment(train_inputs, train_targets, val_inputs, val_targets,
-                   model_params, train_params, vanilla_net_params):
+                   model_params, train_params, vanilla_net_params, filename=''):
+    val_size = 1000
     conv_layer_sizes = [model_params['conv_width']] * model_params['fp_depth']
     conv_arch_params = {'num_hidden_features': conv_layer_sizes,
                         'fp_length': model_params['fp_length'],
@@ -130,12 +137,22 @@ def run_experiment(train_inputs, train_targets, val_inputs, val_targets,
         train_nn(pred_fun, loss_fun, num_weights, train_inputs, train_targets,
                  train_params, validation_aa=val_inputs,
                  validation_raw_targets=val_targets)
-    train_predictions = predict_func(train_inputs)
-    val_predictions = predict_func(val_inputs)
+
+    if filename != '':
+        with open(filename + '.pkl', 'w') as f:
+            pickle.dump(trained_weights, f)
+
+    train_selection = npr.choice(train_inputs.size, val_size)
+    train_predictions = predict_func(train_inputs[train_selection])
+    val_selection = npr.choice(val_inputs.size, val_size)
+    val_predictions = predict_func(val_inputs[val_selection])
     plot_training(conv_training_curve)
-    
-    return pearsonr(train_predictions, train_targets)[0],\
-        pearsonr(val_predictions, val_targets)[0]
+
+    return predict_func,\
+        pearsonr(train_predictions,
+                 train_targets[train_selection])[0],\
+        pearsonr(val_predictions,
+                 val_targets[val_selection])[0]
 
 # Experiment 1: choose hyper parameters for all sizes of HLA-A 2:1
 task_params = {'input_name': 'sequence',
@@ -145,23 +162,24 @@ task_params = {'input_name': 'sequence',
 print 'Task: ', task_params
 test_split = 0.2
 test_seed = 0                   # Consistent seed to grab consistent test set
-data, _ = load_csv_test_split(
+data, test_data = load_csv_test_split(
     task_params['data_file'], test_split, test_seed,
     input_name=task_params['input_name'],
     target_name=task_params['target_name'],
     conditions=task_params['conditions'])
 
 
-hyper_params = dict(fp_length=(65, 10, 'int'),  # output pooling vector & FC layer input.
-                    fp_depth=(7, 1, 'int'),  # The depth equals the fingerprint radius.
-                    conv_width=(20, 10, 'int'),
-                    h1_size=(150, 50, 'int'),  # Size of hidden layer of FC network.
-                    L2_reg=(-2, 0.5, 'exp'),
-                    num_iters=(12, 0, 'int'),
-                    batch_size=(100, 0, 'int'),
-                    init_scale=(-4, 0, 'exp'),
-                    step_size=(-6, 0, 'exp'))
-num_trials = 10
+hyper_params = dict(fp_length=(65, 2, 'int'),  # output pooling vector & FC layer input.
+                    fp_depth=(7, 0, 'int'),  # The depth equals the fingerprint radius.
+                    conv_width=(30, 3, 'int'),
+                    h1_size=(132, 10, 'int'),  # Size of hidden layer of FC network.
+                    L2_reg=(-2.1, 0.05, 'exp'),
+                    num_iters=(400, 0, 'int'),
+                    batch_size=(128, 0, 'int'),
+                    init_scale=(-2.8, 0.3, 'exp'),
+                    step_size=(-3.65, 0.05, 'exp'))
+num_trials = 12
+pred_funs = {}
 results = np.empty((2, num_trials))  # train; val
 experiments = hyper_search(hyper_params, num_trials)
 
@@ -184,19 +202,48 @@ for i in range(num_trials):
                               normalize=True,
                               L2_reg=model_params['L2_reg'],
                               nll_func=rmse)
-    (results[0, i], results[1, i]) =\
-        run_experiment(train_inputs, train_targets,
-                       val_inputs, val_targets,
-                       model_params, train_params,
-                       vanilla_net_params)  # train; val
-    print 'Trial', i, '/', num_trials, 'took', (time()-tic)/60, 'minutes'
+    try:
+        (pred_funs[i], results[0, i], results[1, i]) =\
+            run_experiment(train_inputs, train_targets,
+                           val_inputs, val_targets,
+                           model_params, train_params,
+                           vanilla_net_params, filename='ExpC' + str(i))  # train; val
+        print 'Trial', i, '/', num_trials, 'took', (time()-tic)/60,\
+            'minutes. Pearson:', results[1, i]
+    except:
+        print 'ERROR: Trial', i, 'failed to complete'
 
 plot_hypers('fp_length', experiments['fp_length'],
-            'fp_depth', experiments['fp_depth'],
+            'conv_width', experiments['conv_width'],
             results[1, :], '')
-plot_hypers('conv_width', experiments['conv_width'],
+plot_hypers('fp_length', experiments['fp_length'],
             'h1_size', experiments['h1_size'],
             results[1, :], '')
-plot_hypers('L2_reg', experiments['L2_reg'],
-            'step_size', experiments['step_size'],
+plot_hypers('init_scale', np.log(experiments['init_scale']),
+            'step_size', np.log(experiments['step_size']),
             results[1, :], '')
+plot_hypers('init_scale', np.log(experiments['init_scale']),
+            'L2_reg', np.log(experiments['L2_reg']),
+            results[1, :], '')
+
+# Test on test set
+i = np.argmax(results[1, :])
+
+print "model", i, "had the best params:"
+print model_params
+print train_params
+print vanilla_net_params
+
+# Choose the model with the highest Pearson validation
+pred_fun = pred_funs[i]
+
+(test_in, test_targets) = test_data
+test_predictions = pred_fun(test_in)
+test_correlation = pearsonr(test_predictions.astype('double'),
+                            test_targets.astype('double'))
+print 'Test Pearson correlation (logIC50):', test_correlation[0]
+
+# Original data
+test_correlation = pearsonr(np.exp(test_predictions.astype('double')),
+                            np.exp(test_targets.astype('double')))
+print 'Test Pearson correlation (IC50):', test_correlation[0]
