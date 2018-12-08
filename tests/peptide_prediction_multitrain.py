@@ -235,10 +235,10 @@ print train_params
 print vanilla_net_params
 
 # Choose the model with the highest Pearson validation
-pred_fun = pred_funs[i]
+predict_fun = pred_funs[i]
 
 (test_in, test_targets) = test_data
-test_predictions = pred_fun(test_in)
+test_predictions = predict_fun(test_in)
 test_correlation = pearsonr(test_predictions.astype('double'),
                             test_targets.astype('double'))
 print 'Test Pearson correlation (logIC50):', test_correlation[0]
@@ -247,3 +247,21 @@ print 'Test Pearson correlation (logIC50):', test_correlation[0]
 test_correlation = pearsonr(np.exp(test_predictions.astype('double')),
                             np.exp(test_targets.astype('double')))
 print 'Test Pearson correlation (IC50):', test_correlation[0]
+
+# Ensemble Prediction
+test_predictions = np.empty((num_trials, test_targets.size))
+for i in range(num_trials):
+    test_predictions[i, :] = pred_funs[i](test_in)
+test_predictions = np.mean(test_predictions, 0)
+test_correlation = pearsonr(test_predictions.astype('double'),
+                            test_targets.astype('double'))
+print 'Ensemble Test Pearson correlation (logIC50):', test_correlation[0]
+
+# Original data
+test_correlation = pearsonr(np.exp(test_predictions.astype('double')),
+                            np.exp(test_targets.astype('double')))
+print 'Ensemble Test Pearson correlation (IC50):', test_correlation[0]
+
+# Plot correlations
+plt.scatter(test_targets.astype('double'), test_predictions.astype('double'), '+')
+plt.show

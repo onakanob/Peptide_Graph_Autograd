@@ -107,3 +107,6 @@ Anaconda Prompt*
 Data/
 bdata*
 *org
+grad_student_search.xlsx
+tests/Exp*
+tests/figures

@@ -251,14 +251,14 @@ print model_params
 print train_params
 print vanilla_net_params
 
-(pred_fun, results[0, i], results[1, i]) =\
+(predict_fun, results[0, i], results[1, i]) =\
     run_experiment(train_inputs, train_targets,
                    val_inputs, val_targets,
                    model_params, train_params,
                    vanilla_net_params, filename='ExpB')  # train; val
 print 'Best model Pearson:', results[1, i]
 (test_in, test_targets) = test_data
-test_predictions = pred_fun(test_in)
+test_predictions = predict_fun(test_in)
 test_correlation = pearsonr(test_predictions.astype('double'),
                             test_targets.astype('double'))
 print 'Test Pearson correlation (logIC50):', test_correlation[0]
@@ -284,7 +284,7 @@ data_tens, _ = load_csv_test_split(\
     conditions=task_params['conditions'])
 
 (test_in, test_targets) = data_tens
-test_predictions = pred_fun(test_in)
+test_predictions = predict_fun(test_in)
 test_correlation = pearsonr(test_predictions.astype('double'),
                             test_targets.astype('double'))
 print 'Pearson correlation, 9-length peptides (logIC50):', test_correlation[0]
