@@ -4,7 +4,7 @@ from rdkit.Chem.Draw import SimilarityMaps, MolToMPL
 # A_smiles = 'C(CC(C(=O)O)N)CN=C(N)N'
 # molSmiles = chem.MolFromSmiles(A_smiles)
 
-molAmino = chem.MolFromSequence('VLQRNCAAYL')
+molAmino = chem.MolFromSequence('MPT')
 print(molAmino.GetNumAtoms())
 
 # contribs = chem.rdMolDescriptors._CalcCrippenContribs(molSmiles)
@@ -14,6 +14,6 @@ print(molAmino.GetNumAtoms())
 #fig = SimilarityMaps.GetSimilarityMapFromWeights(
 #    molAmino, [x for x, y in contribs], colorMap='jet', contourLines=10)
 
-fig = MolToMPL(molAmino, size=(300, 300), fitImage=True)
-fig.savefig('testfig.png')
+fig = MolToMPL(molAmino, fitImage=True)
+fig.savefig('testfig.png', bbox_inches='tight')
 print('fig saved')
