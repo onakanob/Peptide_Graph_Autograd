@@ -103,6 +103,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# Project-specific files
 Anaconda Prompt*
 Data/
 bdata*
@@ -110,3 +111,5 @@ bdata*
 grad_student_search.xlsx
 tests/Exp*
 tests/figures
+presentations/*
+*png
